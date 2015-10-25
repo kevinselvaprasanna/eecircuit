@@ -4,11 +4,10 @@ L1 1 2 80.96u
 L2 2 3 80.96u
 R1 3 GND 4k
 C1 2 GND 2.485p
-R2 in 1 4.0meg
-V1 in GND 0 ac 37
+R2 in 1 4.0k
+V1 in GND 0 ac 5
 .end
 
-
 .command
-ac V1 100000m 100000000000m 1
+ac V1 1000 100000000 1
 .end

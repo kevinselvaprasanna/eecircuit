@@ -143,7 +143,7 @@ void solve(complex m[200][200],int count,bool aci,char* n1,char* n2,float w,FILE
 	for(i=1;i<=count-x;i++){
 	c[x]-=m[x][x+i]*c[x+i];}
 	c[x]/=m[x][x];
-	}print(m,count,aci);
+	}//print(m,count,aci);
 	/*for(i=0;i<count;i++)
 		printf("%s\n",node[i].name);*/
 	if(aci){
@@ -151,18 +151,21 @@ void solve(complex m[200][200],int count,bool aci,char* n1,char* n2,float w,FILE
 			printf("%s = %.2e+ %.2ei  \n",node[i].name,creal(c[i]),cimag(c[i]));
 		    complex vn1 = c[row(n1,count)];
 		    complex vn2 = c[row(n2,count)];
-			printf("\nv at %s = %.2e+ %.2ei  ",n1,creal(vn1),cimag(vn1));
-			printf("\nv at %s = %.2e+ %.2ei  ",n2,creal(vn2),cimag(vn2));
-			printf("\n--------------------------------------------------------------------------------");
+			//printf("\nv at %s = %.2e+ %.2ei  ",n1,creal(vn1),cimag(vn1));
+			//printf("\nv at %s = %.2e+ %.2ei  ",n2,creal(vn2),cimag(vn2));
 			fprintf(fo, "%f\t", log10(w) );
-			printf("vs = %.2e+ %.2ei  ",creal(vs),cimag(vs));
-			fprintf(fo, "%f \t %f \n",log10(cabs((vn1-vn2)/vs)),carg((vn1-vn2)/vs));
+			//printf("vs = %.2e+ %.2ei  ",creal(vs),cimag(vs));
+			fprintf(fo, "%f \t %f \n",log10(cabs((vn1-vn2))),carg((vn1-vn2)));
 		}
 	else
 	{
 		for(i=0;i<count;i++)
-		printf("%s = %.2e  \n",node[i].name,creal(c[i]));	
+		printf("%s = %.2e\n",node[i].name,creal(c[i]));
+		for(i=0;i<count;i++)
+		fprintf(fo,"%.2e\t",creal(c[i]));
+		fprintf(fo, "\n");
 	}
+	printf("\n--------------------------------------------------------------------------------");
 	printf("\n\n");
 	//return m;
 	}
@@ -178,8 +181,8 @@ int main(int argc, char **argv)
 	char n2[8];
 	strcpy(n1,argv[2]);
 	strcpy(n2,argv[3]);
-	char ac[5],vname[5],p1[5],p2[5];
-	float vmin,vmax,wstep;int vstep;
+	char ac[5],vname[5],p1[5],p2[5],p10[20],p20[20];
+	float vmin,vmax,wstep,step,vstep;
 	int i,j,s=0,p=0,x=0,n,count=0,v=0;
 	float w= (float)50*(float)2*(float)3.14;
 	int vs[200];
@@ -188,10 +191,11 @@ int main(int argc, char **argv)
 	char buf[60];
 	complex m[200][200],d[200][200];
 	int vv=0;
+	int no=0;
 	bool aci=true;
 	 FILE *fo = fopen("spice.out", "w");
-	fprintf(fo,"X\tY\n");
 	while(esc){
+		no++;
 		FILE* fp = checkargs(argc,argv);
 	list->count=0;
 	if(w!=(float)50*(float)2*(float)3.14)
@@ -215,7 +219,10 @@ int main(int argc, char **argv)
 		else continue;
 		}
 	if(com){
-			int z=sscanf(buf,"%s %s %f%s %f%s %d",ac,vname,&vmin,p1,&vmax,p2,&vstep);
+			int z=sscanf(buf,"%s %s %s %s %f",ac,vname,p10,p20,&vstep);
+			//printf("sscanf = %d\n",z );
+			int z1 = sscanf(p10,"%f%s",&vmin,p1);
+			int z2 = sscanf(p20,"%f%s",&vmax,p1);
 			//printf("%s %s %f %s %f %s %d\n",ac,vname,vmin,p1,vmax,p2,vstep);
 			
 			switch(p1[0]){
@@ -258,14 +265,16 @@ int main(int argc, char **argv)
 						vmax*=0.000000000001;
 						break;
 					}
+					//printf("vmin = %f\n",vmin );
+					//printf("vmax = %f\n",vmax );
 					if(strcmp(ac,"dc")==0)
 				aci=false;
 			else
 				{
-					vstep = (log10(vmax)-log10(vmin))*vstep+2;
-					printf("vstep = %d\n",vstep );
-					wstep=(log10(vmax)-log10(vmin))/(float)(vstep-1);
-					printf("wstep = %f\n",wstep );
+					step = (log10(vmax)-log10(vmin))*vstep+2;
+					//printf("step = %f\n",step );
+					wstep=(log10(vmax)-log10(vmin))/(float)(step-2);
+					//printf("wstep = %f\n",wstep );
 				}
 			com=false;
 			continue;
@@ -459,14 +468,14 @@ int main(int argc, char **argv)
 					if(r2!=-1)
 					node[count].g[r2]=-1;
 					if(r3!=-1)
-					node[count].g[r3]=e1->val;
+					node[count].g[r3]=-e1->val;
 					if(r4!=-1)
-					node[count].g[r4]=-e1->val;
-					if(r3!=-1){
-					node[r3].g[count]=1;
+					node[count].g[r4]=+e1->val;
+					if(r1!=-1){
+					node[r1].g[count]=1;
 					}
 					if(r2!=-1){
-					node[r3].g[count]=-1;
+					node[r2].g[count]=-1;
 					}
 					vs[v]=count;
 					count++;
@@ -643,14 +652,14 @@ int main(int argc, char **argv)
 					if(r2!=-1)
 					node[count].g[r2]=-1;
 					if(r3!=-1)
-					node[count].g[r3]=e1->val;
+					node[count].g[r3]=-e1->val;
 					if(r4!=-1)
-					node[count].g[r4]=-e1->val;
-					if(r3!=-1){
-					node[r3].g[count]=1;
+					node[count].g[r4]=+e1->val;
+					if(r1!=-1){
+					node[r1].g[count]=1;
 					}
 					if(r2!=-1){
-					node[r3].g[count]=-1;
+					node[r2].g[count]=-1;
 					}
 					vs[v]=count;
 					count++;
@@ -717,9 +726,12 @@ int main(int argc, char **argv)
 	}
 	for(i=0;i<count;i++)
 		m[i][count]=-c[i];
-	print(m,count,aci);
-	if(aci)
+	//print(m,count,aci);
+	if(aci){
+	if(no==1)
+			fprintf(fo,"log(w)        \tlog(v1-v2) \tPhase angle\n");
 	solve(m,count,aci,n1,n2,w,fo,-m[vn][count]);
+	}
 	if(!aci){
 		esc = false;
 		break;}
@@ -740,7 +752,7 @@ int main(int argc, char **argv)
 			//Element *e= (Element*)malloc(sizeof(Element));
 			//e=list->head;
 			//freeup(e,list);
-			if(y==vstep+1)
+			if(y==step+1)
 				{
 				esc=false;
 				break;
@@ -756,14 +768,21 @@ int main(int argc, char **argv)
 	for(i=0;i<count;i++)
 		m[i][count]=-c[i];
 	//printf("*%d*\n",vn);
-	m[vn][count]=vmin;
-	int h;
-	float step = (vmax-vmin)/(float)(vstep+1);
+	m[vn][count]=-vmin;
+	//printf("%f\n",vstep );
+	float h=(float)(vmax-vmin)/(float)vstep;
+	//printf("pp%fpp\n",h );
+	int abc;
+	//float step = (vmax-vmin)/(float)(vstep+1);
 	//printf("%f\n",step);
 	if(!aci){
-	for(h=0;h<vstep+2;h++){
-	m[vn][count]=vmin+h*step;
+		for(i=0;i<count;i++)
+		fprintf(fo,"%s\t",node[i].name);
+		fprintf(fo, "\n");	
+	for(abc=0;abc<h+1;abc++){
+	m[vn][count]=-vmin-abc*vstep;
 	//print(m,count,aci);
+	printf("%s = %f\n\n",vname,creal(m[vn][count]));
 	solve(m,count,aci,n1,n2,-1,fo,0);
 	for(i=0;i<count;i++){
 	for(j=0;j<count;j++)
