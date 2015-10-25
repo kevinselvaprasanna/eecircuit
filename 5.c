@@ -16,28 +16,11 @@ double val;
 int b;
 } Element;
 
-
-
-
-
 typedef struct List {
 Element *head ;
 Element *tail ;
 int count;
 }List ;
-
-/*typedef struct Node{
-	char name[8];
-	struct Branch *b;
-	int bcount;
-	struct Node* next;
-}Node;
-
-typedef struct Branch{
-	Node *n;
-	double imp;
-	struct Branch *next;
-}Branch;*/
 
 typedef struct Node{
  char name[8];
@@ -78,12 +61,7 @@ FILE* checkargs(int argc, char **argv){
 }
 return fp;
 }
-/*int max(int a, int b){
-	if (a>b)
-		return a;
-	else
-		return b;
-}*/
+
 int row(char rowname[8],int count){
 	int q;
 	for(q=0;q<count;q++){
@@ -98,25 +76,7 @@ bool ifvs(int i,int v,int vs[200]){
 			return true;
 	}return false;
 }
-/*void printvalues(Element* e){
-	while(1){
-			printf("name:%s  ",e->name);
-			printf("node1:%s  ",e->n1);
-			printf("node2:%s  ",e->n2);
-			if(e->name[0]=='G'||e->name[0]=='E')
-			{
-			printf("node3:%s  ",e->n3);
-			printf("node4:%s  ",e->n4);
-			}
-			if(e->name[0]=='H'||e->name[0]=='F')
-			printf("vname:%s  ",e->vname);
-			printf("value:%e  ",e->val);
-			printf("\n");
-			if(e->next==NULL)
-				break;
-			e=e->next;
-	}
-}*/
+
 void print(complex m[200][200],int count,bool aci)
 {
 	int x,y;
@@ -212,7 +172,7 @@ int main(int argc, char **argv)
 {
 	int vn=-1;
 	int y=0;
-	bool esc=true;
+	bool esc=true,eg=false;
 	bool is = false,com =false;
 	char n1[8];
 	char n2[8];
@@ -223,7 +183,7 @@ int main(int argc, char **argv)
 	int i,j,s=0,p=0,x=0,n,count=0,v=0;
 	float w= (float)50*(float)2*(float)3.14;
 	int vs[200];
-	double c[500],b[100];
+	double c[500];
 	List *list = (List*)malloc (sizeof(List));
 	char buf[60];
 	complex m[200][200],d[200][200];
@@ -239,6 +199,7 @@ int main(int argc, char **argv)
 	Node sam[100];
 	int ghj;
 	while(fgets(buf, 60, fp)){
+		eg=false;
 	if(is&&!com){
 		if(buf[0]=='.')
 		{
@@ -338,7 +299,9 @@ int main(int argc, char **argv)
 		//printf("%s",cc);
 				switch(x){
 				case 0:
-					strcpy(e1->name,cc); 
+					strcpy(e1->name,cc);
+					if(e1->name[0]=='e'||e1->name[0]=='E') 
+						eg=true;
 					break;
 				case 1:
 					strcpy(e1->n1,cc); 
@@ -397,6 +360,8 @@ int main(int argc, char **argv)
 				list->count++;
 				int r1=0;
 				int r2=1;
+				int r3=2;
+				int r4=3;
 				if((strcmp(e1->n1,"GND")==0)||(strcmp(e1->n1,"gnd")==0))
 				r1=-1;
 				else{
@@ -406,6 +371,18 @@ int main(int argc, char **argv)
 				r2=-1;
 				else{
 				strcpy(node[1].name,e1->n2);count++;
+				}
+				if(eg){
+				if((strcmp(e1->n3,"GND")==0)||(strcmp(e1->n3,"gnd")==0))
+				r3=-1;
+				else{
+				strcpy(node[2].name,e1->n3);count++;
+				}
+				if((strcmp(e1->n4,"GND")==0)||(strcmp(e1->n4,"gnd")==0))
+				r4=-1;
+				else{
+				strcpy(node[3].name,e1->n4);count++;
+				}
 				}
 				switch(e1->name[0]){
 				case 'R':
@@ -459,14 +436,38 @@ int main(int argc, char **argv)
 					if(r2!=-1)
 					node[count].g[r2]=-1;
 					if(r1!=-1){
-					b[r1]=1;
+					//b[r1]=1;
 					node[r1].g[count]=1;
 					}
 					if(r2!=-1){
-					b[r2]=-1;
+					//b[r2]=-1;
 					node[r2].g[count]=-1;
 					}
 					c[count]+=e1->val;
+					vs[v]=count;
+					count++;
+					v++;
+					break;
+				case 'E':
+				case 'e':
+					if(strcmp(e1->name,vname)==0){
+						vn = count;
+					}
+					strcpy(node[count].name,e1->name);
+					if(r1!=-1)
+					node[count].g[r1]=1;
+					if(r2!=-1)
+					node[count].g[r2]=-1;
+					if(r3!=-1)
+					node[count].g[r3]=e1->val;
+					if(r4!=-1)
+					node[count].g[r4]=-e1->val;
+					if(r3!=-1){
+					node[r3].g[count]=1;
+					}
+					if(r2!=-1){
+					node[r3].g[count]=-1;
+					}
 					vs[v]=count;
 					count++;
 					v++;
@@ -501,7 +502,7 @@ int main(int argc, char **argv)
 				e1->val=p;
 				e1->prev=NULL;
 				e1->next=NULL;
-				int r1,r2;
+				int r1,r2,r3,r4;
 				
 				if((row(e1->n1,count)==-1)&&(strcmp(e1->n1,"GND")!=0)&&(strcmp(e1->n1,"gnd")!=0)){
 					strcpy(node[count].name,e1->n1);
@@ -517,7 +518,22 @@ int main(int argc, char **argv)
 					}
 				else
 					r2=row(e1->n2,count);
-				
+				if(eg){
+				if((row(e1->n3,count)==-1)&&(strcmp(e1->n3,"GND")!=0)&&(strcmp(e1->n3,"gnd")!=0)){
+					strcpy(node[count].name,e1->n3);
+					r3=count;
+					count++;
+					}
+				else
+					r3=row(e1->n3,count);
+				if((row(e1->n4,count)==-1)&&(strcmp(e1->n4,"GND")!=0)&&(strcmp(e1->n4,"gnd")!=0)){
+					strcpy(node[count].name,e1->n4);
+					r4=count;
+					count++;
+					}
+				else
+					r4=row(e1->n4,count);
+				}
 				switch(e1->name[0]){
 				case 'R':
 				case 'r':
@@ -570,11 +586,9 @@ int main(int argc, char **argv)
 					if(r2!=-1)
 					node[count].g[r2]=-1;
 					if(r1!=-1){
-					b[r1]=1;
 					node[r1].g[count]=1;
 					}
 					if(r2!=-1){
-					b[r2]=-1;
 					node[r2].g[count]=-1;
 					}
 					c[count]+=e1->val;
@@ -583,6 +597,52 @@ int main(int argc, char **argv)
 					count++;
 					v++;
 					break;
+				case 'E':
+				case 'e':
+					if(strcmp(e1->name,vname)==0){
+						vn = count;
+					}
+					strcpy(node[count].name,e1->name);
+					if(r1!=-1)
+					node[count].g[r1]=1;
+					if(r2!=-1)
+					node[count].g[r2]=-1;
+					if(r3!=-1)
+					node[count].g[r3]=e1->val;
+					if(r4!=-1)
+					node[count].g[r4]=-e1->val;
+					if(r3!=-1){
+					node[r3].g[count]=1;
+					}
+					if(r2!=-1){
+					node[r3].g[count]=-1;
+					}
+					vs[v]=count;
+					count++;
+					v++;
+					break;
+				case 'H':
+				case 'h':
+				if(strcmp(e1->name,vname)==0){
+						vn = count;
+					}
+					strcpy(node[count].name,e1->name);
+					if(r1!=-1)
+					node[count].g[r1]=1;
+					if(r2!=-1)
+					node[count].g[r2]=-1;
+					if(r1!=-1){
+					node[r1].g[count]=1;
+					}
+					if(r2!=-1){
+					node[r2].g[count]=-1;
+					}
+					node[count].g[row(e1->vname,count)]=-e1->val;
+					vs[v]=count;
+					count++;
+					v++;
+					break;
+
 				}
 				//n=max(n,r1);
 				//n=max(n,r2);
@@ -624,7 +684,8 @@ int main(int argc, char **argv)
 			is=false;com=false;
 			int gg;
 			for(gg=0;gg<100;gg++)
-				{b[gg]=0;c[gg]=0;}
+				{//b[gg]=0;
+				c[gg]=0;}
 			for(ghj=0;ghj<100;ghj++)
 			node[ghj]=sam[ghj];
 			//Element *e= (Element*)malloc(sizeof(Element));

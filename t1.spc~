@@ -1,5 +1,5 @@
 .circuit
-i1 n1 GND 5
+v1 n1 GND 5k
 r1 n1 n2 1meg
 r2 n2 GND 1meg
 .end
