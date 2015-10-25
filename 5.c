@@ -300,7 +300,7 @@ int main(int argc, char **argv)
 				switch(x){
 				case 0:
 					strcpy(e1->name,cc);
-					if(e1->name[0]=='e'||e1->name[0]=='E') 
+					if(e1->name[0]=='e'||e1->name[0]=='E'||e1->name[0]=='G'||e1->name[0]=='g') 
 						eg=true;
 					break;
 				case 1:
@@ -472,6 +472,41 @@ int main(int argc, char **argv)
 					count++;
 					v++;
 					break;
+				case 'H':
+				case 'h':
+				if(strcmp(e1->name,vname)==0){
+						vn = count;
+					}
+					strcpy(node[count].name,e1->name);
+					if(r1!=-1)
+					node[count].g[r1]=1;
+					if(r2!=-1)
+					node[count].g[r2]=-1;
+					if(r1!=-1){
+					node[r1].g[count]=1;
+					}
+					if(r2!=-1){
+					node[r2].g[count]=-1;
+					}
+					node[count].g[row(e1->vname,count)]=-e1->val;
+					vs[v]=count;
+					count++;
+					v++;
+					break;
+				case 'F':
+				case 'f':
+					if(r1!=-1)
+					node[r1].g[row(e1->vname,count)]=e1->val;
+					if(r2!=-1)
+					node[r2].g[row(e1->vname,count)]=-e1->val;
+					break;
+				case 'G':
+				case 'g':
+					if((r1!=-1)&&(r3!=-1))
+						node[r1].g[r3]+=e1->val;
+					if((r2!=-1)&&(r4!=-1))
+						node[r2].g[r4]-=e1->val;
+					break;
 				}
 				n=1;
 			}else{
@@ -641,6 +676,20 @@ int main(int argc, char **argv)
 					vs[v]=count;
 					count++;
 					v++;
+					break;
+				case 'F':
+				case 'f':
+					if(r1!=-1)
+					node[r1].g[row(e1->vname,count)]=e1->val;
+					if(r2!=-1)
+					node[r2].g[row(e1->vname,count)]=-e1->val;
+					break;
+				case 'G':
+				case 'g':
+					if((r1!=-1)&&(r3!=-1))
+						node[r1].g[r3]+=e1->val;
+					if((r2!=-1)&&(r4!=-1))
+						node[r2].g[r4]-=e1->val;
 					break;
 
 				}
