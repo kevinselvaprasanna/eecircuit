@@ -1,0 +1,493 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+EE 2701 - Introduction to python
+\end_layout
+
+\begin_layout Author
+Kevin Selva Prasanna V
+\begin_inset Newline newline
+\end_inset
+
+EE14B028
+\begin_inset Newline newline
+\end_inset
+
+Electrical Engineering Department
+\end_layout
+
+\begin_layout Date
+1 October 2015
+\end_layout
+
+\begin_layout Abstract
+This report presents the python code to read through a spice file; parse
+ its contents, analyse the nodes in the circuit and process the modifiers
+ attached to the values if any.
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+This code takes in the path of a spice file as a command line argument,
+ then parses its contents.
+ It creates a dictionary of nodes associating a unique number to each node.
+ It also parses the values of each element and modifies its value based
+ on the modifiers attached to it if any.
+\end_layout
+
+\begin_layout Section
+Aim
+\end_layout
+
+\begin_layout Standard
+The python code takes in a spice file as a command line argument and parses
+ its contents.
+\end_layout
+
+\begin_layout Section
+Code
+\end_layout
+
+\begin_layout Subsection
+Checking for command line arguments and opening the file
+\end_layout
+
+\begin_layout LyX-Code
+import sys
+\end_layout
+
+\begin_layout LyX-Code
+import re
+\end_layout
+
+\begin_layout LyX-Code
+if len(sys.argv)<2:
+\end_layout
+
+\begin_layout LyX-Code
+	print "usage: 1.py filename"
+\end_layout
+
+\begin_layout LyX-Code
+	sys.exit(1)
+\end_layout
+
+\begin_layout LyX-Code
+with open(sys.argv[1],'r') as f:
+\end_layout
+
+\begin_layout LyX-Code
+	lines = f.readlines()
+\end_layout
+
+\begin_layout LyX-Code
+	start = False
+\end_layout
+
+\begin_layout Subsection
+Creating dictionaries and parsing the contents of the file
+\end_layout
+
+\begin_layout LyX-Code
+name = []
+\end_layout
+
+\begin_layout LyX-Code
+node1 = []
+\end_layout
+
+\begin_layout LyX-Code
+node2 = []
+\end_layout
+
+\begin_layout LyX-Code
+value = []
+\end_layout
+
+\begin_layout LyX-Code
+v = []
+\end_layout
+
+\begin_layout LyX-Code
+node = {'GND': 0}
+\end_layout
+
+\begin_layout LyX-Code
+i=1
+\end_layout
+
+\begin_layout LyX-Code
+c=0
+\end_layout
+
+\begin_layout LyX-Code
+for l in lines:
+\end_layout
+
+\begin_layout LyX-Code
+	words = l.split()
+\end_layout
+
+\begin_layout LyX-Code
+	if (len(words)>0):
+\end_layout
+
+\begin_layout LyX-Code
+		if (words[0]==".circuit"):
+\end_layout
+
+\begin_layout LyX-Code
+			start = True
+\end_layout
+
+\begin_layout LyX-Code
+			continue
+\end_layout
+
+\begin_layout LyX-Code
+	if (len(words)>0):
+\end_layout
+
+\begin_layout LyX-Code
+			if (words[0]==".end"):
+\end_layout
+
+\begin_layout LyX-Code
+				start = False
+\end_layout
+
+\begin_layout LyX-Code
+	if(start):
+\end_layout
+
+\begin_layout LyX-Code
+		 name.append(words[0])
+\end_layout
+
+\begin_layout LyX-Code
+		 node1.append(words[1])
+\end_layout
+
+\begin_layout LyX-Code
+		 node2.append(words[2])
+\end_layout
+
+\begin_layout LyX-Code
+		 value.append(words[3])
+\end_layout
+
+\begin_layout LyX-Code
+		 c=c+1
+\end_layout
+
+\begin_layout LyX-Code
+		 k = re.search("^([+-]?[0-9]*[
+\backslash
+.]?[0-9]*)(e[+-]?[0-9]*)?(.*)",words[3])
+\end_layout
+
+\begin_layout LyX-Code
+		 #print k.groups()
+\end_layout
+
+\begin_layout LyX-Code
+		 if(k.groups()[2]=='k'):
+\end_layout
+
+\begin_layout LyX-Code
+		 	v.append(float(k.groups()[0])*1000)
+\end_layout
+
+\begin_layout LyX-Code
+		 else:
+\end_layout
+
+\begin_layout LyX-Code
+		 	 if(k.groups()[2]=='meg'):
+\end_layout
+
+\begin_layout LyX-Code
+		 		v.append(float(k.groups()[0])*1000000)
+\end_layout
+
+\begin_layout LyX-Code
+		 	 else:
+\end_layout
+
+\begin_layout LyX-Code
+		 		if(k.groups()[2]=='m'):
+\end_layout
+
+\begin_layout LyX-Code
+		 				v.append(float(k.groups()[0])*0.001)
+\end_layout
+
+\begin_layout LyX-Code
+		 		else:
+\end_layout
+
+\begin_layout LyX-Code
+		 			if(k.groups()[2]=='u'):
+\end_layout
+
+\begin_layout LyX-Code
+		 					v.append(float(k.groups()[0])*0.000001)
+\end_layout
+
+\begin_layout LyX-Code
+		 			else:
+\end_layout
+
+\begin_layout LyX-Code
+		 					v.append(float(k.groups()[0]))
+\end_layout
+
+\begin_layout LyX-Code
+		 if(words[1] not in node):
+\end_layout
+
+\begin_layout LyX-Code
+		 	node[words[1]]=i
+\end_layout
+
+\begin_layout LyX-Code
+		 	i=i+1
+\end_layout
+
+\begin_layout LyX-Code
+		 if(words[2] not in node):
+\end_layout
+
+\begin_layout LyX-Code
+		 	node[words[2]]=i
+\end_layout
+
+\begin_layout LyX-Code
+		 	i=i+1
+\end_layout
+
+\begin_layout Standard
+The code starts parsing the file as soon as 
+\begin_inset Quotes eld
+\end_inset
+
+.circuit
+\begin_inset Quotes erd
+\end_inset
+
+ line is reached and starts adding the nodes to the dictionary and processing
+ modifiers.
+ The code stops parsing as soon as a 
+\begin_inset Quotes eld
+\end_inset
+
+.end
+\begin_inset Quotes erd
+\end_inset
+
+ line is encountered.
+\end_layout
+
+\begin_layout Subsection
+Printing the parsed content
+\end_layout
+
+\begin_layout LyX-Code
+for a in range(0,c):
+\end_layout
+
+\begin_layout LyX-Code
+	print name[a] + " " + str(node[node1[a]]) + " " + str(node[node2[a]]) +
+ " " + str(v[a])
+\end_layout
+
+\begin_layout LyX-Code
+for a in range(0,i):
+\end_layout
+
+\begin_layout LyX-Code
+	for n in node:
+\end_layout
+
+\begin_layout LyX-Code
+		if(node[n]==a):
+\end_layout
+
+\begin_layout LyX-Code
+			print str(a) + " : " + n;
+\end_layout
+
+\begin_layout Standard
+The code prints the parsed content and also the dictionary of nodes along
+ with their unique id integer.
+\end_layout
+
+\begin_layout Section
+Sample run
+\end_layout
+
+\begin_layout Subsection
+Input spice file
+\end_layout
+
+\begin_layout Standard
+.circuit
+\end_layout
+
+\begin_layout Standard
+C1 1 2 10m
+\end_layout
+
+\begin_layout Standard
+V1 1 GND 360
+\end_layout
+
+\begin_layout Standard
+R1 2 3 100
+\end_layout
+
+\begin_layout Standard
+L1 3 GND 100
+\end_layout
+
+\begin_layout Standard
+.end
+\end_layout
+
+\begin_layout Standard
+.command
+\end_layout
+
+\begin_layout Standard
+ac V1 1m 1000m 1
+\end_layout
+
+\begin_layout Standard
+.end
+\end_layout
+
+\begin_layout Subsection
+Output
+\end_layout
+
+\begin_layout Standard
+When the command 
+\begin_inset Quotes eld
+\end_inset
+
+python filename.py filename.spc
+\begin_inset Quotes erd
+\end_inset
+
+ is given, the following output is displayed:
+\end_layout
+
+\begin_layout Standard
+C1 1 2 0.01
+\end_layout
+
+\begin_layout Standard
+V1 1 0 360.0
+\end_layout
+
+\begin_layout Standard
+R1 2 3 100.0
+\end_layout
+
+\begin_layout Standard
+L1 3 0 100.0
+\end_layout
+
+\begin_layout Standard
+0 : GND
+\end_layout
+
+\begin_layout Standard
+1 : 1
+\end_layout
+
+\begin_layout Standard
+2 : 2
+\end_layout
+
+\begin_layout Standard
+3 : 3
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+Thus python is more convinient in terms of coding to parse the contents
+ of a spice file than C.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_body
+\end_document
