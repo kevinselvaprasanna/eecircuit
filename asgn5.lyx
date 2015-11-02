@@ -1,0 +1,2918 @@
+#LyX 2.0 created this file. For more info see http://www.lyx.org/
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\begin_modules
+noweb
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+EE 2701 - Solving the matrix equation
+\end_layout
+
+\begin_layout Author
+Kevin Selva Prasanna V
+\begin_inset Newline newline
+\end_inset
+
+EE14B028
+\begin_inset Newline newline
+\end_inset
+
+Electrical Engineering Department
+\end_layout
+
+\begin_layout Date
+23 September 2015
+\end_layout
+
+\begin_layout Abstract
+This report presents the code to read a spice file describing a circuit,
+ parse it, form equations and then print the solutions for unknown voltages
+ and currents.
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+This report describes the use of gaussian method to solve the matrix equations
+ describing a circuit given in a spice file.A spice file contain the data
+ about the elements of a circuit in a predefined format.
+ It contains the name of an element, the nodes to which the element is connented
+, value of its property and other relevent information.
+ As it is in a predefined format, it is possible for a C program to read
+ the spice file,form equations describing the circuit and solve them to
+ give currents and voltages of brancehes and nodes in the crcuit.
+ This report explains the process to do so.
+\end_layout
+
+\begin_layout Section
+Aim
+\end_layout
+
+\begin_layout Standard
+This code reads the spice file given as the command line argument, solves
+ the circuit represented by the spice file and prints the results to a file.
+\end_layout
+
+\begin_layout Section
+Code
+\end_layout
+
+\begin_layout Subsection
+Declaring the linked lists
+\end_layout
+
+\begin_layout LyX-Code
+#include <stdlib.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <assert.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <string.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <stdio.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <string.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <complex.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <stdbool.h>
+\end_layout
+
+\begin_layout LyX-Code
+#include <math.h>
+\end_layout
+
+\begin_layout LyX-Code
+typedef struct Element{
+\end_layout
+
+\begin_layout LyX-Code
+struct Element *next;
+\end_layout
+
+\begin_layout LyX-Code
+struct Element *prev;
+\end_layout
+
+\begin_layout LyX-Code
+char name[8],n1[8],n2[8],n3[8],n4[8],vname[8],value[8];
+\end_layout
+
+\begin_layout LyX-Code
+double val;
+\end_layout
+
+\begin_layout LyX-Code
+int b;
+\end_layout
+
+\begin_layout LyX-Code
+} Element;
+\end_layout
+
+\begin_layout LyX-Code
+typedef struct List {
+\end_layout
+
+\begin_layout LyX-Code
+Element *head ;
+\end_layout
+
+\begin_layout LyX-Code
+Element *tail ;
+\end_layout
+
+\begin_layout LyX-Code
+int count;
+\end_layout
+
+\begin_layout LyX-Code
+}List ;
+\end_layout
+
+\begin_layout LyX-Code
+/*typedef struct Node{
+\end_layout
+
+\begin_layout LyX-Code
+	char name[8];
+\end_layout
+
+\begin_layout LyX-Code
+	struct Branch *b;
+\end_layout
+
+\begin_layout LyX-Code
+	int bcount;
+\end_layout
+
+\begin_layout LyX-Code
+	struct Node* next;
+\end_layout
+
+\begin_layout LyX-Code
+}Node;
+\end_layout
+
+\begin_layout LyX-Code
+typedef struct Branch{
+\end_layout
+
+\begin_layout LyX-Code
+	Node *n;
+\end_layout
+
+\begin_layout LyX-Code
+	double imp;
+\end_layout
+
+\begin_layout LyX-Code
+	struct Branch *next;
+\end_layout
+
+\begin_layout LyX-Code
+}Branch;*/
+\end_layout
+
+\begin_layout LyX-Code
+typedef struct Node{
+\end_layout
+
+\begin_layout LyX-Code
+ char name[8];
+\end_layout
+
+\begin_layout LyX-Code
+ complex g[100];
+\end_layout
+
+\begin_layout LyX-Code
+ }Node;
+\end_layout
+
+\begin_layout LyX-Code
+ Node node[100];
+\end_layout
+
+\begin_layout LyX-Code
+void add(List *list,Element *node ) {
+\end_layout
+
+\begin_layout LyX-Code
+list->tail->next=node;
+\end_layout
+
+\begin_layout LyX-Code
+node->prev = list->tail ;
+\end_layout
+
+\begin_layout LyX-Code
+list->tail = node ;
+\end_layout
+
+\begin_layout LyX-Code
+node->next=NULL;
+\end_layout
+
+\begin_layout LyX-Code
+list->count += 1 ;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+As the number of elements in the circuit is unknown until the time of execution,
+ it is better to use linked list to store the contents of each element.
+ The linked list element should contain all parameters of the element(name,
+ values) .
+ A separate structure takes care of the address of the first node and the
+ count of the original linked list.
+\end_layout
+
+\begin_layout Standard
+Moreover, each node is saved in a structure that contains the name of the
+ particular node and the row of the A matrix corresponding that row as an
+ integer array.
+ Thus an array of this structure can be used to represent the matrix.
+ While forming the A matrix this structure can be used.
+\end_layout
+
+\begin_layout Subsection
+Function to freeup the allocated memory
+\end_layout
+
+\begin_layout LyX-Code
+void freeup(Element* e,List* list){
+\end_layout
+
+\begin_layout LyX-Code
+	while(1){
+\end_layout
+
+\begin_layout LyX-Code
+		e=e->next;
+\end_layout
+
+\begin_layout LyX-Code
+		free(e->prev);
+\end_layout
+
+\begin_layout LyX-Code
+		if(e->next==NULL){
+\end_layout
+
+\begin_layout LyX-Code
+			free(e);
+\end_layout
+
+\begin_layout LyX-Code
+			break;
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	free(list);
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsection
+Opening the file and checking for command line arguments
+\end_layout
+
+\begin_layout LyX-Code
+FILE* checkargs(int argc, char **argv){
+\end_layout
+
+\begin_layout LyX-Code
+	if(argc != 4){								/* Program expects a filename.check that argument
+ was passed */
+\end_layout
+
+\begin_layout LyX-Code
+	printf("Usage ./a.out <filename>");
+\end_layout
+
+\begin_layout LyX-Code
+	exit(1); 
+\end_layout
+
+\begin_layout LyX-Code
+	}                                                               /* Open
+ file while checking for existence */
+\end_layout
+
+\begin_layout LyX-Code
+	FILE *fp = fopen(argv[1], "r");
+\end_layout
+
+\begin_layout LyX-Code
+	if(fp == NULL){
+\end_layout
+
+\begin_layout LyX-Code
+	printf("File could not be opened");
+\end_layout
+
+\begin_layout LyX-Code
+	exit(2);
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout LyX-Code
+return fp;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsection
+Function to determine previously created or encountered nodes
+\end_layout
+
+\begin_layout LyX-Code
+int row(char rowname[8],int count){
+\end_layout
+
+\begin_layout LyX-Code
+	int q;
+\end_layout
+
+\begin_layout LyX-Code
+	for(q=0;q<count;q++){
+\end_layout
+
+\begin_layout LyX-Code
+		if((strcmp(rowname,node[q].name))==0)
+\end_layout
+
+\begin_layout LyX-Code
+			return q;
+\end_layout
+
+\begin_layout LyX-Code
+	}return -1;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout LyX-Code
+This function takes in the name of a node as a parameter and searches the
+ previously made structure representing the matrix if this node is already
+ in it.
+\end_layout
+
+\begin_layout Subsection
+Function to determine if the voltage source is already encountered
+\end_layout
+
+\begin_layout LyX-Code
+bool ifvs(int i,int v,int vs[200]){
+\end_layout
+
+\begin_layout LyX-Code
+	int q;
+\end_layout
+
+\begin_layout LyX-Code
+	for(q=0;q<v;q++){
+\end_layout
+
+\begin_layout LyX-Code
+		if(i==vs[q])
+\end_layout
+
+\begin_layout LyX-Code
+			return true;
+\end_layout
+
+\begin_layout LyX-Code
+	}return false;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsection
+Function to print the matrix equations
+\end_layout
+
+\begin_layout LyX-Code
+void print(complex m[200][200],int count,bool aci)
+\end_layout
+
+\begin_layout LyX-Code
+{
+\end_layout
+
+\begin_layout LyX-Code
+	int x,y;
+\end_layout
+
+\begin_layout LyX-Code
+	if(aci){
+\end_layout
+
+\begin_layout LyX-Code
+		for(x=0;x<count;x++){
+\end_layout
+
+\begin_layout LyX-Code
+		for(y=0;y<count+1;y++){
+\end_layout
+
+\begin_layout LyX-Code
+		printf("%.2e+ %.2ei   ",creal(m[x][y]),cimag(m[x][y]));
+\end_layout
+
+\begin_layout LyX-Code
+		}printf("
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+		}printf("
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	else
+\end_layout
+
+\begin_layout LyX-Code
+	{
+\end_layout
+
+\begin_layout LyX-Code
+		for(x=0;x<count;x++){
+\end_layout
+
+\begin_layout LyX-Code
+		for(y=0;y<count+1;y++){
+\end_layout
+
+\begin_layout LyX-Code
+		printf("%.2e  ",creal(m[x][y]));
+\end_layout
+
+\begin_layout LyX-Code
+		}printf("
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+		}printf("
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+		
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Subsection
+Function to solve the matrix equation
+\end_layout
+
+\begin_layout LyX-Code
+void solve(complex m[200][200],int count,bool aci,char* n1,char* n2,float
+ w,FILE *fo)
+\end_layout
+
+\begin_layout LyX-Code
+{
+\end_layout
+
+\begin_layout LyX-Code
+	int x,y,r=1,i;
+\end_layout
+
+\begin_layout LyX-Code
+	for(r=1;r<count;r++)
+\end_layout
+
+\begin_layout LyX-Code
+	{int s =max(r-1,m,count);
+\end_layout
+
+\begin_layout LyX-Code
+		if(s!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+		for(i=0;i<200;i++){
+\end_layout
+
+\begin_layout LyX-Code
+			complex temp= m[r-1][i];
+\end_layout
+
+\begin_layout LyX-Code
+			m[r-1][i]=m[s][i];
+\end_layout
+
+\begin_layout LyX-Code
+			m[s][i]=temp;
+\end_layout
+
+\begin_layout LyX-Code
+			char tem[5];
+\end_layout
+
+\begin_layout LyX-Code
+			strcpy(tem,node[r-1].name);
+\end_layout
+
+\begin_layout LyX-Code
+			strcpy(node[r-1].name,node[s].name);
+\end_layout
+
+\begin_layout LyX-Code
+			strcpy(node[s].name,tem);
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+		else
+\end_layout
+
+\begin_layout LyX-Code
+			continue;
+\end_layout
+
+\begin_layout LyX-Code
+	for(x=r;x<count;x++){
+\end_layout
+
+\begin_layout LyX-Code
+		for(y=count;y>=0;y--){
+\end_layout
+
+\begin_layout LyX-Code
+		m[x][y]-=(m[r-1][y]*(m[x][r-1]/m[r-1][r-1]));
+\end_layout
+
+\begin_layout LyX-Code
+		//print(m,count);
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+		}//print(m,count,aci);
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	complex c[count+1];
+\end_layout
+
+\begin_layout LyX-Code
+	c[count]=1;
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		c[i]=0;
+\end_layout
+
+\begin_layout LyX-Code
+	for(x=count-1;x>=0;x--){
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=1;i<=count-x;i++){
+\end_layout
+
+\begin_layout LyX-Code
+	c[x]-=m[x][x+i]*c[x+i];}
+\end_layout
+
+\begin_layout LyX-Code
+	c[x]/=m[x][x];
+\end_layout
+
+\begin_layout LyX-Code
+	}print(m,count,aci);
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		printf("%s
+\backslash
+n",node[i].name);
+\end_layout
+
+\begin_layout LyX-Code
+	if(aci){
+\end_layout
+
+\begin_layout LyX-Code
+		for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+			printf("%.2e+ %.2ei  ",creal(c[i]),cimag(c[i]));
+\end_layout
+
+\begin_layout LyX-Code
+		    complex vn1 = c[row(n1,count)];
+\end_layout
+
+\begin_layout LyX-Code
+		    complex vn2 = c[row(n2,count)];
+\end_layout
+
+\begin_layout LyX-Code
+			printf("
+\backslash
+nv at %s = %.2e+ %.2ei  ",n1,creal(vn1),cimag(vn1));
+\end_layout
+
+\begin_layout LyX-Code
+			printf("
+\backslash
+nv at %s = %.2e+ %.2ei  ",n2,creal(vn2),cimag(vn2));
+\end_layout
+
+\begin_layout LyX-Code
+			fprintf(fo, "%f
+\backslash
+t", log10(w) );
+\end_layout
+
+\begin_layout LyX-Code
+			fprintf(fo, "%.2e+ %.2ei  
+\backslash
+n",creal(vn1-vn2),cimag(vn1-vn2));
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	else
+\end_layout
+
+\begin_layout LyX-Code
+	{
+\end_layout
+
+\begin_layout LyX-Code
+		for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		printf("%.2e  ",creal(c[i]));	
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	printf("
+\backslash
+n
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+	//return m;
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout Standard
+This function uses gaussian method to solve the matrix i.e., it performs equivalen
+t row operations on the matrix equation to bring it to upper trianlgular
+ form; then recursively determines the value of each variable in the equation.
+\end_layout
+
+\begin_layout Subsection
+Reading the spice file and parsing in into a processed data in a linked
+ list
+\end_layout
+
+\begin_layout LyX-Code
+int main(int argc, char **argv)
+\end_layout
+
+\begin_layout LyX-Code
+{
+\end_layout
+
+\begin_layout LyX-Code
+	int vn=-1;
+\end_layout
+
+\begin_layout LyX-Code
+	int y=0;
+\end_layout
+
+\begin_layout LyX-Code
+	bool esc=true;
+\end_layout
+
+\begin_layout LyX-Code
+	bool is = false,com =false;
+\end_layout
+
+\begin_layout LyX-Code
+	char n1[8];
+\end_layout
+
+\begin_layout LyX-Code
+	char n2[8];
+\end_layout
+
+\begin_layout LyX-Code
+	strcpy(n1,argv[2]);
+\end_layout
+
+\begin_layout LyX-Code
+	strcpy(n2,argv[3]);
+\end_layout
+
+\begin_layout LyX-Code
+	char ac[5],vname[5],p1[5],p2[5];
+\end_layout
+
+\begin_layout LyX-Code
+	float vmin,vmax,wstep;int vstep;
+\end_layout
+
+\begin_layout LyX-Code
+	int i,j,s=0,p=0,x=0,n,count=0,v=0;
+\end_layout
+
+\begin_layout LyX-Code
+	float w= (float)50*(float)2*(float)3.14;
+\end_layout
+
+\begin_layout LyX-Code
+	int vs[200];
+\end_layout
+
+\begin_layout LyX-Code
+	double c[500],b[100];
+\end_layout
+
+\begin_layout LyX-Code
+	List *list = (List*)malloc (sizeof(List));
+\end_layout
+
+\begin_layout LyX-Code
+	char buf[60];
+\end_layout
+
+\begin_layout LyX-Code
+	complex m[200][200],d[200][200];
+\end_layout
+
+\begin_layout LyX-Code
+	int vv=0;
+\end_layout
+
+\begin_layout LyX-Code
+	bool aci=true;
+\end_layout
+
+\begin_layout LyX-Code
+	 FILE *fo = fopen("spice.out", "w");
+\end_layout
+
+\begin_layout LyX-Code
+	fprintf(fo,"X
+\backslash
+tY
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+	while(esc){
+\end_layout
+
+\begin_layout LyX-Code
+		FILE* fp = checkargs(argc,argv);
+\end_layout
+
+\begin_layout LyX-Code
+	list->count=0;
+\end_layout
+
+\begin_layout LyX-Code
+	printf("#%f#
+\backslash
+n",w);
+\end_layout
+
+\begin_layout LyX-Code
+	while(fgets(buf, 60, fp)){
+\end_layout
+
+\begin_layout LyX-Code
+	if(is&&!com){
+\end_layout
+
+\begin_layout LyX-Code
+		if(buf[0]=='.')
+\end_layout
+
+\begin_layout LyX-Code
+		{
+\end_layout
+
+\begin_layout LyX-Code
+			if(buf[1]=='c'&&buf[2]=='o'&&buf[3]=='m'&&buf[4]=='m'&&buf[5]=='a'&&buf[6]=='
+n'&&buf[7]=='d'){
+\end_layout
+
+\begin_layout LyX-Code
+			com=true;
+\end_layout
+
+\begin_layout LyX-Code
+			continue;
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+			else if(buf[1]=='e'&&buf[2]=='n'&&buf[3]=='d')
+\end_layout
+
+\begin_layout LyX-Code
+			{
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+		else continue;
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	if(com){
+\end_layout
+
+\begin_layout LyX-Code
+			int z=sscanf(buf,"%s %s %f%s %f%s %d",ac,vname,&vmin,p1,&vmax,p2,&vstep);
+\end_layout
+
+\begin_layout LyX-Code
+			printf("%s %s %f %s %f %s %d
+\backslash
+n",ac,vname,vmin,p1,vmax,p2,vstep);
+\end_layout
+
+\begin_layout LyX-Code
+			if(strcmp(ac,"dc")==0)
+\end_layout
+
+\begin_layout LyX-Code
+				aci=false;
+\end_layout
+
+\begin_layout LyX-Code
+			else
+\end_layout
+
+\begin_layout LyX-Code
+				{
+\end_layout
+
+\begin_layout LyX-Code
+					wstep=(log10(vmax)-log10(vmin))/(float)(vstep+1);
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+			switch(p1[0]){
+\end_layout
+
+\begin_layout LyX-Code
+					case 'n':
+\end_layout
+
+\begin_layout LyX-Code
+						vmin*=0.000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'u':
+\end_layout
+
+\begin_layout LyX-Code
+						vmin*=0.000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'm':
+\end_layout
+
+\begin_layout LyX-Code
+						if(p1[1]=='e'&&p1[2]=='g'&&p1[3]=='
+\backslash
+0')
+\end_layout
+
+\begin_layout LyX-Code
+							p*=1000000;
+\end_layout
+
+\begin_layout LyX-Code
+						else
+\end_layout
+
+\begin_layout LyX-Code
+						vmin*=0.001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'k':
+\end_layout
+
+\begin_layout LyX-Code
+						vmin*=1000;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'p':
+\end_layout
+
+\begin_layout LyX-Code
+						vmin*=0.000000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+			switch(p2[0]){
+\end_layout
+
+\begin_layout LyX-Code
+					case 'n':
+\end_layout
+
+\begin_layout LyX-Code
+						vmax*=0.000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'u':
+\end_layout
+
+\begin_layout LyX-Code
+						vmax*=0.000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'm':
+\end_layout
+
+\begin_layout LyX-Code
+						if(p2[1]=='e'&&p2[2]=='g'&&p2[3]=='
+\backslash
+0')
+\end_layout
+
+\begin_layout LyX-Code
+							p*=1000000;
+\end_layout
+
+\begin_layout LyX-Code
+						else
+\end_layout
+
+\begin_layout LyX-Code
+						vmax*=0.001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'k':
+\end_layout
+
+\begin_layout LyX-Code
+						vmax*=1000;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'p':
+\end_layout
+
+\begin_layout LyX-Code
+						vmax*=0.000000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+			com=false;
+\end_layout
+
+\begin_layout LyX-Code
+			continue;
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	if(buf[0]=='*')
+\end_layout
+
+\begin_layout LyX-Code
+		continue;
+\end_layout
+
+\begin_layout LyX-Code
+	if(buf[0]=='.')
+\end_layout
+
+\begin_layout LyX-Code
+		{
+\end_layout
+
+\begin_layout LyX-Code
+		if(buf[1]=='e'&&buf[2]=='n'&&buf[3]=='d'){
+\end_layout
+
+\begin_layout LyX-Code
+		is = true;
+\end_layout
+
+\begin_layout LyX-Code
+		continue;
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+		else
+\end_layout
+
+\begin_layout LyX-Code
+		continue;
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	Element *e1= (Element*)malloc(sizeof(Element));
+\end_layout
+
+\begin_layout LyX-Code
+	p=0;s=0;
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<60;i++){
+\end_layout
+
+\begin_layout LyX-Code
+		if(buf[i]==32||buf[i]=='
+\backslash
+0'||buf[i]=='
+\backslash
+n')
+\end_layout
+
+\begin_layout LyX-Code
+		{
+\end_layout
+
+\begin_layout LyX-Code
+			s=i;
+\end_layout
+
+\begin_layout LyX-Code
+			char cc[14]="";
+\end_layout
+
+\begin_layout LyX-Code
+			for(j=0;j<s-p;j++)
+\end_layout
+
+\begin_layout LyX-Code
+			{
+\end_layout
+
+\begin_layout LyX-Code
+				if(buf[p+j]>40&&buf[p+j]<123)
+\end_layout
+
+\begin_layout LyX-Code
+				cc[j]=buf[p+j];
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+		
+\end_layout
+
+\begin_layout LyX-Code
+		if((s-p)>0){
+\end_layout
+
+\begin_layout LyX-Code
+		//printf("%s",cc);
+\end_layout
+
+\begin_layout LyX-Code
+				switch(x){
+\end_layout
+
+\begin_layout LyX-Code
+				case 0:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->name,cc); 
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 1:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->n1,cc); 
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 2:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->n2,cc); 
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 3:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->value,cc);
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 4:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->vname,e1->value); 
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->value,cc); 
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 5:
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->n3,e1->vname);
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->n4,e1->value);
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(e1->value,cc);
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+		x++;
+\end_layout
+
+\begin_layout LyX-Code
+		}	
+\end_layout
+
+\begin_layout LyX-Code
+		p=s+1;
+\end_layout
+
+\begin_layout LyX-Code
+		}if(buf[i]=='
+\backslash
+n'||buf[i]==0) break;
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<60;i++) buf[i]=0;
+\end_layout
+
+\begin_layout LyX-Code
+	if(x>0){
+\end_layout
+
+\begin_layout LyX-Code
+			if(list->count==0){
+\end_layout
+
+\begin_layout LyX-Code
+				char s[5];
+\end_layout
+
+\begin_layout LyX-Code
+				long double p;
+\end_layout
+
+\begin_layout LyX-Code
+				int z=sscanf(e1->value,"%Lf%s",&p,s);
+\end_layout
+
+\begin_layout LyX-Code
+				switch(s[0]){
+\end_layout
+
+\begin_layout LyX-Code
+					case 'n':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'u':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'm':
+\end_layout
+
+\begin_layout LyX-Code
+						if(s[1]=='e'&&s[2]=='g'&&s[3]=='
+\backslash
+0')
+\end_layout
+
+\begin_layout LyX-Code
+							p*=1000000;
+\end_layout
+
+\begin_layout LyX-Code
+						else
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'k':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=1000;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'p':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+				e1->val=p;
+\end_layout
+
+\begin_layout LyX-Code
+				e1->prev=NULL;
+\end_layout
+
+\begin_layout LyX-Code
+				list->head=e1;
+\end_layout
+
+\begin_layout LyX-Code
+				list->tail=e1;
+\end_layout
+
+\begin_layout LyX-Code
+				list->count++;
+\end_layout
+
+\begin_layout Subsection
+Reading the spice file line by line and adding elements to the matrix
+\end_layout
+
+\begin_layout LyX-Code
+int r1=0;
+\end_layout
+
+\begin_layout LyX-Code
+				int r2=1;
+\end_layout
+
+\begin_layout LyX-Code
+				if((strcmp(e1->n1,"GND")==0)||(strcmp(e1->n1,"gnd")==0))
+\end_layout
+
+\begin_layout LyX-Code
+				r1=-1;
+\end_layout
+
+\begin_layout LyX-Code
+				else{
+\end_layout
+
+\begin_layout LyX-Code
+				strcpy(node[0].name,e1->n1);count++;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+				if((strcmp(e1->n2,"GND")==0)||(strcmp(e1->n2,"gnd")==0))
+\end_layout
+
+\begin_layout LyX-Code
+				r2=-1;
+\end_layout
+
+\begin_layout LyX-Code
+				else{
+\end_layout
+
+\begin_layout LyX-Code
+				strcpy(node[1].name,e1->n2);count++;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+				switch(e1->name[0]){
+\end_layout
+
+\begin_layout LyX-Code
+				case 'R':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'r':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'L':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'l':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'C':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'c':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'I':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'i':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				c[r1]+=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				c[r2]-=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case'V':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'v':
+\end_layout
+
+\begin_layout LyX-Code
+					if(strcmp(e1->name,vname)==0){
+\end_layout
+
+\begin_layout LyX-Code
+						vn = count;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(node[count].name,e1->name);
+\end_layout
+
+\begin_layout LyX-Code
+					if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+					node[count].g[r1]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+					node[count].g[r2]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					if(r1!=-1){
+\end_layout
+
+\begin_layout LyX-Code
+					b[r1]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					node[r1].g[count]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					if(r2!=-1){
+\end_layout
+
+\begin_layout LyX-Code
+					b[r2]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					node[r2].g[count]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					c[count]+=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+					vs[v]=count;
+\end_layout
+
+\begin_layout LyX-Code
+					count++;
+\end_layout
+
+\begin_layout LyX-Code
+					v++;
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+				n=1;
+\end_layout
+
+\begin_layout LyX-Code
+			}else{
+\end_layout
+
+\begin_layout LyX-Code
+				char s[5];
+\end_layout
+
+\begin_layout LyX-Code
+				long double p;
+\end_layout
+
+\begin_layout LyX-Code
+				int z=sscanf(e1->value,"%Lf%s",&p,s);
+\end_layout
+
+\begin_layout LyX-Code
+				//printf("%d     %f  %s",z,p,s);
+\end_layout
+
+\begin_layout LyX-Code
+				switch(s[0]){
+\end_layout
+
+\begin_layout LyX-Code
+					case 'n':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'u':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'm':
+\end_layout
+
+\begin_layout LyX-Code
+						if(s[1]=='e'&&s[2]=='g'&&s[3]=='
+\backslash
+0')
+\end_layout
+
+\begin_layout LyX-Code
+							p*=1000000;
+\end_layout
+
+\begin_layout LyX-Code
+						else
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'k':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=1000;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					case 'p':
+\end_layout
+
+\begin_layout LyX-Code
+						p*=0.000000000001;
+\end_layout
+
+\begin_layout LyX-Code
+						break;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+				e1->val=p;
+\end_layout
+
+\begin_layout LyX-Code
+				e1->prev=NULL;
+\end_layout
+
+\begin_layout LyX-Code
+				e1->next=NULL;
+\end_layout
+
+\begin_layout LyX-Code
+				int r1,r2;
+\end_layout
+
+\begin_layout LyX-Code
+				
+\end_layout
+
+\begin_layout LyX-Code
+				if((row(e1->n1,count)==-1)&&(strcmp(e1->n1,"GND")!=0)&&(strcmp(e1->n1,"gnd")
+!=0)){
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(node[count].name,e1->n1);
+\end_layout
+
+\begin_layout LyX-Code
+					r1=count;
+\end_layout
+
+\begin_layout LyX-Code
+					count++;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+				else
+\end_layout
+
+\begin_layout LyX-Code
+					r1=row(e1->n1,count);
+\end_layout
+
+\begin_layout LyX-Code
+				if((row(e1->n2,count)==-1)&&(strcmp(e1->n2,"GND")!=0)&&(strcmp(e1->n2,"gnd")
+!=0)){
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(node[count].name,e1->n2);
+\end_layout
+
+\begin_layout LyX-Code
+					r2=count;
+\end_layout
+
+\begin_layout LyX-Code
+					count++;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+				else
+\end_layout
+
+\begin_layout LyX-Code
+					r2=row(e1->n2,count);
+\end_layout
+
+\begin_layout LyX-Code
+				
+\end_layout
+
+\begin_layout LyX-Code
+				switch(e1->name[0]){
+\end_layout
+
+\begin_layout LyX-Code
+				case 'R':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'r':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=((double)1/e1->val);
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'L':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'l':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=((double)1/(e1->val*w))*(-I);
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'C':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'c':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r1]+=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r1].g[r2]-=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r2]+=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				if((r1!=-1)&&(r2!=-1))
+\end_layout
+
+\begin_layout LyX-Code
+				node[r2].g[r1]-=w*(e1->val)*I;
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case 'I':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'i':
+\end_layout
+
+\begin_layout LyX-Code
+				if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				c[r1]+=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+				if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+				c[r2]-=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				case'V':
+\end_layout
+
+\begin_layout LyX-Code
+				case 'v':
+\end_layout
+
+\begin_layout LyX-Code
+					if(strcmp(e1->name,vname)==0){
+\end_layout
+
+\begin_layout LyX-Code
+						vn = count;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					strcpy(node[count].name,e1->name);
+\end_layout
+
+\begin_layout LyX-Code
+					if(r1!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+					node[count].g[r1]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					if(r2!=-1)
+\end_layout
+
+\begin_layout LyX-Code
+					node[count].g[r2]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					if(r1!=-1){
+\end_layout
+
+\begin_layout LyX-Code
+					b[r1]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					node[r1].g[count]=1;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					if(r2!=-1){
+\end_layout
+
+\begin_layout LyX-Code
+					b[r2]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					node[r2].g[count]=-1;
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+					c[count]+=e1->val;
+\end_layout
+
+\begin_layout LyX-Code
+					vs[v]=count;
+\end_layout
+
+\begin_layout LyX-Code
+					count++;
+\end_layout
+
+\begin_layout LyX-Code
+					v++;
+\end_layout
+
+\begin_layout LyX-Code
+					break;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+				//n=max(n,r1);
+\end_layout
+
+\begin_layout LyX-Code
+				//n=max(n,r2);
+\end_layout
+
+\begin_layout LyX-Code
+				//printf("$%d$
+\backslash
+n",count);
+\end_layout
+
+\begin_layout LyX-Code
+				add(list,e1);
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+			}
+\end_layout
+
+\begin_layout LyX-Code
+			x=0;
+\end_layout
+
+\begin_layout LyX-Code
+	}	
+\end_layout
+
+\begin_layout Standard
+The code reads each line of the spice file one by one.
+ The first line is handled separately as it involves creating the linked
+ list.
+ The rest is in the else part of the if else statement.
+ The code reads the nodes present in the given line and checks if it is
+ a new node, a ground or a previously encountered node by calling the 
+\begin_inset Quotes eld
+\end_inset
+
+row
+\begin_inset Quotes erd
+\end_inset
+
+ function.
+ Then it adds a row to the matrix(an array of structure node which is used
+ to represent the matrix).
+ Then it reads what type of element it is ( resistor or capacitor or anything
+ else) and performs appropriate calculations based on a switch case to convert
+ it into complex impedence and adds it to the matrix at the appropriate
+ place.
+ Thus the matrix is created.
+\end_layout
+
+\begin_layout Subsection
+Iterating the solution for different input values
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<v;i++){
+\end_layout
+
+\begin_layout LyX-Code
+		if(strcmp(node[vs[i]].name,vname)==0){
+\end_layout
+
+\begin_layout LyX-Code
+						vn = vs[i];
+\end_layout
+
+\begin_layout LyX-Code
+					}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	printf("
+\backslash
+n");
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++){
+\end_layout
+
+\begin_layout LyX-Code
+	for(j=0;j<count;j++)
+\end_layout
+
+\begin_layout LyX-Code
+	{
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][j]= node[i].g[j];
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][count]=-c[i];
+\end_layout
+
+\begin_layout LyX-Code
+	//print(m,count,aci);
+\end_layout
+
+\begin_layout LyX-Code
+	solve(m,count,aci,n1,n2,w,fo);
+\end_layout
+
+\begin_layout LyX-Code
+	if(!aci){
+\end_layout
+
+\begin_layout LyX-Code
+		esc = false;
+\end_layout
+
+\begin_layout LyX-Code
+		break;}
+\end_layout
+
+\begin_layout LyX-Code
+	else
+\end_layout
+
+\begin_layout LyX-Code
+		{
+\end_layout
+
+\begin_layout LyX-Code
+			//printf("#%f#
+\backslash
+n",w);
+\end_layout
+
+\begin_layout LyX-Code
+			w=pow(10,(log10(vmin)+y*wstep));
+\end_layout
+
+\begin_layout LyX-Code
+			y++;
+\end_layout
+
+\begin_layout LyX-Code
+			count=0;
+\end_layout
+
+\begin_layout LyX-Code
+			s=0;p=0;x=0;count=0;vv=0;v=0;
+\end_layout
+
+\begin_layout LyX-Code
+			is=false;com=false;
+\end_layout
+
+\begin_layout LyX-Code
+			//Element *e= (Element*)malloc(sizeof(Element));
+\end_layout
+
+\begin_layout LyX-Code
+			//e=list->head;
+\end_layout
+
+\begin_layout LyX-Code
+			//freeup(e,list);
+\end_layout
+
+\begin_layout LyX-Code
+			if(y==vstep+3)
+\end_layout
+
+\begin_layout LyX-Code
+				{
+\end_layout
+
+\begin_layout LyX-Code
+				esc=false;
+\end_layout
+
+\begin_layout LyX-Code
+				break;
+\end_layout
+
+\begin_layout LyX-Code
+				}
+\end_layout
+
+\begin_layout LyX-Code
+		}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++){
+\end_layout
+
+\begin_layout LyX-Code
+	for(j=0;j<count;j++)
+\end_layout
+
+\begin_layout LyX-Code
+	{
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][j]= node[i].g[j];
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][count]=-c[i];
+\end_layout
+
+\begin_layout LyX-Code
+	printf("*%d*
+\backslash
+n",vn);
+\end_layout
+
+\begin_layout LyX-Code
+	m[vn][count]=vmin;
+\end_layout
+
+\begin_layout LyX-Code
+	int h;
+\end_layout
+
+\begin_layout LyX-Code
+	float step = (vmax-vmin)/(float)(vstep+1);
+\end_layout
+
+\begin_layout LyX-Code
+	printf("%f
+\backslash
+n",step);
+\end_layout
+
+\begin_layout LyX-Code
+	if(!aci){
+\end_layout
+
+\begin_layout LyX-Code
+	for(h=0;h<vstep+2;h++){
+\end_layout
+
+\begin_layout LyX-Code
+	m[vn][count]=vmin+h*step;
+\end_layout
+
+\begin_layout LyX-Code
+	print(m,count,aci);
+\end_layout
+
+\begin_layout LyX-Code
+	solve(m,count,aci,n1,n2,-1,fo);
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++){
+\end_layout
+
+\begin_layout LyX-Code
+	for(j=0;j<count;j++)
+\end_layout
+
+\begin_layout LyX-Code
+	{
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][j]= node[i].g[j];
+\end_layout
+
+\begin_layout LyX-Code
+	} 
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	for(i=0;i<count;i++)
+\end_layout
+
+\begin_layout LyX-Code
+		m[i][count]=-c[i];
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	}
+\end_layout
+
+\begin_layout LyX-Code
+	Element *e= (Element*)malloc(sizeof(Element));
+\end_layout
+
+\begin_layout LyX-Code
+	e=list->head;
+\end_layout
+
+\begin_layout LyX-Code
+	freeup(e,list);
+\end_layout
+
+\begin_layout LyX-Code
+}
+\end_layout
+
+\begin_layout LyX-Code
+			
+\end_layout
+
+\begin_layout LyX-Code
+		
+\end_layout
+
+\begin_layout Standard
+This is the most important part of this report.
+ The code forms the augmented matrix of equations and calls the solve function
+ passing the augmented matrix as a parameter to solve it.
+ Then the code iterates for different values of angular frequency if it
+ is an ac signal or for different values of voltage for a dc signal.
+ Finally it calls the print function to print the solutions and the freeup
+ funtion the free up the allocated memory to the linked lists.
+\end_layout
+
+\begin_layout Section
+Output
+\end_layout
+
+\begin_layout Standard
+The code displays the final augmented matrix in upper triangular form and
+ the solutions for node voltages for each value of w as shown below:
+\end_layout
+
+\begin_layout Standard
+w = 0.001000
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06 1.00e+00 -1.00e-06 -0.00e+00 0.00e+00 -1.00e+06 1.00e+00 1.00e-02 0.00e+00
+ 0.00e+00 1.00e+06 1.00e-08 
+\end_layout
+
+\begin_layout Standard
+n1 = -1.00e-02 v1 = 1.00e-08 n2 = -1.00e-14 
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06 1.00e+00 -1.00e-06 -0.00e+00 0.00e+00 -1.00e+06 1.00e+00 2.50e+01 0.00e+00
+ 0.00e+00 1.00e+06 2.50e-05 
+\end_layout
+
+\begin_layout Standard
+n1 = -2.50e+01 v1 = 2.50e-05 n2 = -2.50e-11 
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06 1.00e+00 -1.00e-06 -0.00e+00 0.00e+00 -1.00e+06 1.00e+00 5.00e+01 0.00e+00
+ 0.00e+00 1.00e+06 5.00e-05 
+\end_layout
+
+\begin_layout Standard
+n1 = -5.00e+01 v1 = 5.00e-05 n2 = -5.00e-11 
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06 1.00e+00 -1.00e-06 -0.00e+00 0.00e+00 -1.00e+06 1.00e+00 7.50e+01 0.00e+00
+ 0.00e+00 1.00e+06 7.50e-05 
+\end_layout
+
+\begin_layout Standard
+n1 = -7.50e+01 v1 = 7.50e-05 n2 = -7.50e-11 
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06 1.00e+00 -1.00e-06 -0.00e+00 0.00e+00 -1.00e+06 1.00e+00 1.00e+02 0.00e+00
+ 0.00e+00 1.00e+06 1.00e-04 
+\end_layout
+
+\begin_layout Standard
+n1 = -1.00e+02 v1 = 1.00e-04 n2 = -1.00e-10 
+\end_layout
+
+\begin_layout Standard
+kevinselvaprasanna@kevin-ubuntu:~$ ./55 lyx3.spc 2 1
+\end_layout
+
+\begin_layout Standard
+w = 0.001000
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+5.00e-07+ -1.24e+07i 0.00e+00+ 1.24e+07i 0.00e+00+ 0.00e+00i -5.00e-07+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 5.00e-07+ -1.24e+07i
+ 0.00e+00+ 1.24e+07i -5.00e-07+ 2.02e-20i 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 5.00e-04+ 0.00e+00i -5.00e-07+ 4.05e-20i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 5.00e-07+ -4.04e-20i 1.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ -2.00e+06+ -1.62e-07i -5.00e+00+ 0.00e+00i 
+\end_layout
+
+\begin_layout Standard
+1 = 5.00e-03+ 4.04e-13i 2 = 5.00e-03+ 2.02e-13i 3 = 5.00e-03+ -4.04e-16i in =
+ 5.00e+00+ 0.00e+00i V1 = -2.50e-06+ 2.02e-19i 
+\end_layout
+
+\begin_layout Standard
+v at 2 = 5.00e-03+ 2.02e-13i v at 1 = 5.00e-03+ 4.04e-13i --------------------------
+------------------------------------------------------vs = 5.00e+00+ -0.00e+00i
+ 
+\end_layout
+
+\begin_layout Standard
+w = 0.010000
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+7.50e-07+ -1.36e+07i 0.00e+00+ 1.36e+07i 0.00e+00+ 0.00e+00i -7.50e-07+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 7.50e-07+ -1.36e+07i
+ 0.00e+00+ 1.36e+07i -7.50e-07+ 4.14e-20i 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 7.51e-04+ 0.00e+00i -7.50e-07+ 8.28e-20i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 7.49e-07+ -8.26e-20i 1.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ -1.26e-29i
+ -1.33e+06+ -1.47e-07i -5.00e+00+ 0.00e+00i 
+\end_layout
+
+\begin_layout Standard
+1 = 5.00e-03+ 5.51e-13i 2 = 5.00e-03+ 2.75e-13i 3 = 5.00e-03+ -5.51e-16i in =
+ 5.00e+00+ 0.00e+00i V1 = -3.75e-06+ 4.13e-19i 
+\end_layout
+
+\begin_layout Standard
+v at 2 = 5.00e-03+ 2.75e-13i v at 1 = 5.00e-03+ 5.51e-13i --------------------------
+------------------------------------------------------vs = 5.00e+00+ -0.00e+00i
+ 
+\end_layout
+
+\begin_layout Standard
+w = 0.100000
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.00e-06+ -1.37e+07i 0.00e+00+ 1.37e+07i 0.00e+00+ 0.00e+00i -1.00e-06+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 1.00e-06+ -1.37e+07i
+ 0.00e+00+ 1.37e+07i -1.00e-06+ 7.29e-20i 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 2.12e-22+ 0.00e+00i 1.00e-03+ -3.73e-09i -1.00e-06+ 1.46e-19i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i -3.46e-53+ 9.30e-48i
+ 0.00e+00+ -4.40e-29i 9.99e-07+ -3.72e-15i 1.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ -1.00e+06+ -3.73e-03i -5.00e+00+ 0.00e+00i 
+\end_layout
+
+\begin_layout Standard
+1 = 5.00e-03+ 1.86e-08i 2 = 5.00e-03+ 1.86e-08i 3 = 5.00e-03+ 1.86e-08i in = 5.00e+00+
+ 6.32e-24i V1 = -5.00e-06+ 1.86e-14i 
+\end_layout
+
+\begin_layout Standard
+v at 2 = 5.00e-03+ 1.86e-08i v at 1 = 5.00e-03+ 1.86e-08i --------------------------
+------------------------------------------------------vs = 5.00e+00+ -0.00e+00i
+ 
+\end_layout
+
+\begin_layout Standard
+w = 1.000000
+\end_layout
+
+\begin_layout Standard
+MATRIX IN UPPER TRIANGULAR FORM (some elements in the lower half maynot
+ be exactly zero but have a small value and can be neglected
+\end_layout
+
+\begin_layout Standard
+1.25e-06+ -1.37e+07i 0.00e+00+ 1.37e+07i 0.00e+00+ 0.00e+00i -1.25e-06+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 1.25e-06+ -1.37e+07i
+ 0.00e+00+ 1.37e+07i -1.25e-06+ 1.14e-19i 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 1.25e-03+ 0.00e+00i -1.25e-06+ 2.28e-19i
+ 0.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 1.25e-06+ -2.27e-19i 1.00e+00+ 0.00e+00i -0.00e+00+ 0.00e+00i
+ 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i 0.00e+00+ 0.00e+00i
+ -8.01e+05+ -1.46e-07i -5.00e+00+ 0.00e+00i 
+\end_layout
+
+\begin_layout Standard
+1 = 5.00e-03+ 9.09e-13i 2 = 5.00e-03+ 4.54e-13i 3 = 5.00e-03+ -9.10e-16i in =
+ 5.00e+00+ 0.00e+00i V1 = -6.24e-06+ 1.14e-18i 
+\end_layout
+
+\begin_layout Standard
+v at 2 = 5.00e-03+ 4.54e-13i v at 1 = 5.00e-03+ 9.09e-13i --------------------------
+------------------------------------------------------vs = 5.00e+00+ -0.00e+00i
+ 
+\end_layout
+
+\begin_layout LyX-Code
+
+\end_layout
+
+\begin_layout Section
+Algorithm used and Inferences
+\end_layout
+
+\begin_layout Standard
+This code uses a array of structures to store the nodes as each node must
+ be able to save its name and the row in the A matrix corresponding to that
+ row.
+ Moreover, complex.h library is used as complex variables are dealt .At last,
+ the array of structures is printed as an matrix along with the solutions.
+\end_layout
+
+\begin_layout Section
+Conclusion
+\end_layout
+
+\begin_layout Standard
+Thus the spice file is converted to a matrix equation,solves and solutions
+ are printed in the terminal and onto a file.
+\end_layout
+
+\end_body
+\end_document
